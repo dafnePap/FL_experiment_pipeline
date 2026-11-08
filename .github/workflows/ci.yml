@@ -1,0 +1,46 @@
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Lint with Ruff
+        run: |
+          pip install ruff
+          ruff check . --select E9,F63,F7,F82
+
+      - name: Validate Docker Compose
+        run: docker compose config -q
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          push: false
+          tags: fl-experiment:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Prepare the data
+        run: |
+          mkdir -p results
+          docker compose run --rm --no-deps --user "$(id -u):$(id -g)" prepare-data
+
+      - name: Smoke test
+        run: |
+          docker compose run --rm --no-deps --user "$(id -u):$(id -g)" experiment1 \
+            python experiment_runner.py experiments_config/smoke.yaml
+          ls results/*/FedAvg_mnist_LG.pkl

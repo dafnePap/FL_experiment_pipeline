@@ -1,0 +1,16 @@
+
+name: smoke_test
+
+shared:
+  dataset: mnist
+  model: LG
+  global_epochs: 2
+  client_num_per_round: 2
+  local_epochs: 1
+  batch_size: 64
+  seed: 17
+  gpu: 0
+
+algorithms:
+  - name: fedavg
+    local_lr: 0.1

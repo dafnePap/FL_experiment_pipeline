@@ -1,0 +1,29 @@
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Virtual env
+.venv/
+venv/
+myenv/
+testenv/
+
+# Generated datasets
+data/mnist/
+data/emnist/
+data/cifar10/
+data/MNIST/
+data/EMNIST/
+data/CIFAR10/
+data/*/raw/
+data/*/processed/
+data/*/pickles/
+data/args.json
+
+# Results
+results/
+
+# Local env
+.env

@@ -1,0 +1,24 @@
+name: mnist_comparison
+
+shared:
+  dataset: mnist
+  model: LG
+  global_epochs: 10
+  client_num_per_round: 2
+  local_epochs: 1
+  batch_size: 64
+  seed: 17
+  gpu: 0
+
+algorithms:
+  - name: fedavg
+    local_lr: 0.1
+
+  - name: fedprox
+    local_lr: 0.05
+    mu: 0.01
+
+  - name: fedadam
+    local_lr: 0.01
+    eta: 0.01
+    tau: 0.001

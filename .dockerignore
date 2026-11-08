@@ -1,0 +1,11 @@
+.venv/
+.git/
+__pycache__/
+*.pyc
+results/
+data/**/*.pkl
+data/**/*.pt
+data/**/*.npy
+data/**/*.gz
+data/**/raw/
+data/**/processed/

@@ -1,0 +1,31 @@
+
+services:
+  experiment1:
+    image: fl-experiment:latest
+    build: .
+
+    command: ["python", "experiment_runner.py", "experiments_config/comparison.yaml"]
+
+    volumes:
+      - ./data/mnist:/app/data/mnist
+      - ./data/MNIST:/app/data/MNIST
+      - ./data/args.json:/app/data/args.json:ro
+      - ./results:/app/results
+      - ./experiments_config:/app/experiments_config:ro
+
+    network_mode: none
+
+  prepare-data:
+    image: fl-experiment:latest
+    build: .
+
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        python data/utils/run.py --dataset mnist --client_num_in_total 10 --s_iid 0.0 --seed 17 --root /app/data
+        python -c "from torchvision.datasets import MNIST; MNIST('/app/data', train=False, download=True)"
+
+    volumes:
+      - ./data:/app/data

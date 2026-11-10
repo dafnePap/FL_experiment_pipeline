@@ -1,6 +1,7 @@
 
 services:
   experiment1:
+    user: "1000:1000"
     image: fl-experiment:latest
     build: .
 

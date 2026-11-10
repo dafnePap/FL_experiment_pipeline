@@ -1,23 +1,9 @@
 import argparse
 import os
 import pickle
+from pathlib import Path
+
 import matplotlib.pyplot as plt
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--dataset", required=True)
-parser.add_argument("--model", required=True)
-args = parser.parse_args()
-
-dataset = args.dataset
-model = args.model
-
-FILES = {
-    "SCAFFOLD": f"results/SCAFFOLD_{dataset}_{model}.pkl",
-    "FedAvg": f"results/FedAvg_{dataset}_{model}.pkl",
-    "FedProx": f"results/FedProx_{dataset}_{model}.pkl",
-    "FedAdam": f"results/FedAdam_{dataset}_{model}.pkl",
-    "FDAOPT": f"results/FDAOPT_{dataset}_{model}.pkl",
-}
 
 COLORS = {
     "SCAFFOLD": "#24b2d1",
@@ -27,52 +13,90 @@ COLORS = {
     "FDAOPT": "#b338a5",
 }
 
-os.makedirs("plots", exist_ok=True)
-plt.figure(figsize=(7, 4))
-max_round = 0
-for name, path in FILES.items():
-    if not os.path.exists(path):
-        print(f"[SKIP] {name}: file not found ({path})")
-        continue
 
-    print(f"[LOAD] {name}: {path}")
+def load_results(results_dir):
+    results_dir = Path(results_dir)
+    files = sorted(results_dir.glob("*.pkl"))
 
-    with open(path, "rb") as f:
-        data = pickle.load(f)
+    loaded = {}
 
-    rounds = data["rounds"]
-    acc = data["accuracy"]
-    down_per_round = data["down_per_round"]
-    up_per_round = data["up_per_round"]
-    total_down = data["total_down"]
-    total_up = data["total_up"]
-    max_round = max(max_round, max(rounds))
+    for path in files:
+        with open(path, "rb") as f:
+            data = pickle.load(f)
 
-    down_str = ("N/A" if down_per_round is None
-                else f"{down_per_round / 1e6:.2f} MB")
-    up_str = ("N/A" if up_per_round is None
-              else f"{up_per_round / 1e6:.2f} MB")
+        algorithm_name = path.stem.split("_")[0]
+        loaded[algorithm_name] = data
 
-    for r, accu in zip(rounds, acc):
-        print(f"Round {r}: accuracy={accu:.2f}% | down/round={down_str} | up/round={up_str}")
+    return loaded
 
-    print(f"TOTAL communication cost: {(total_down + total_up) / 1e6:.2f} MB")
-    print(f"points={len(acc)}, final acc={acc[-1]:.2f}%\n")
 
-    plt.plot(rounds, acc, label=name, color=COLORS.get(name), linewidth=2)
+def plot_metric(results_dir, metric="accuracy"):
+    results_dir = Path(results_dir)
+    loaded = load_results(results_dir)
 
-plt.xlabel("Communication Round")
-plt.xticks(range(2, max_round + 1, 2))
-plt.legend()
-plt.grid(alpha=0.25)
-plt.tight_layout()
+    if not loaded:
+        raise ValueError(f"No .pkl files found in {results_dir}")
 
-output = f"plots/{dataset}_{model}_accuracy.png"
+    plt.figure(figsize=(7, 4))
+    max_round = 0
 
-if os.path.exists(output):
-    os.remove(output)
+    for algorithm_name, data in loaded.items():
+        rounds = data["rounds"]
+        values = data[metric]
+        max_round = max(max_round, max(rounds))
 
-plt.savefig(output, dpi=300, bbox_inches="tight")
-plt.close()
+        plt.plot(
+            rounds,
+            values,
+            label=algorithm_name,
+            color=COLORS.get(algorithm_name),
+            linewidth=2,
+            marker="o",
+        )
 
-print(f"\nSaved plot to: {output}")
+    plt.xlabel("Communication Round")
+
+    if metric == "accuracy":
+        plt.ylabel("Accuracy (%)")
+        plt.title("Accuracy vs Communication Round")
+    elif metric == "loss":
+        plt.ylabel("Loss")
+        plt.title("Loss vs Communication Round")
+
+    plt.xticks(range(2, max_round + 1, 2))
+    plt.legend()
+    plt.grid(alpha=0.25)
+    plt.tight_layout()
+
+    plots_dir = results_dir / "plots"
+    plots_dir.mkdir(exist_ok=True)
+
+    output = plots_dir / f"{metric}.png"
+
+    if output.exists():
+        output.unlink()
+
+    plt.savefig(output, dpi=300, bbox_inches="tight")
+    plt.close()
+
+    return output
+
+
+def generate_all_plots(results_dir):
+    accuracy_path = plot_metric(results_dir, "accuracy")
+    loss_path = plot_metric(results_dir, "loss")
+    return {
+        "accuracy": str(accuracy_path),
+        "loss": str(loss_path),
+    }
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--results_dir", required=True)
+    args = parser.parse_args()
+
+    outputs = generate_all_plots(args.results_dir)
+    print("Generated plots:")
+    for name, path in outputs.items():
+        print(f"{name}: {path}")

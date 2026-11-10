@@ -21,7 +21,10 @@ def main(config_path):
         config = yaml.safe_load(f)
 
     # Make a new results folder named by date and time
-    out = Path("results") / datetime.now().strftime("comparison_%Y%m%d_%H%M%S")
+    out = Path("results") / os.environ.get(
+    "FL_COMPARISON_ID",
+    datetime.now().strftime("comparison_%Y%m%d_%H%M%S")
+    )
     out.mkdir(parents=True)
     shutil.copy(config_path, out / "comparison.yaml")
 

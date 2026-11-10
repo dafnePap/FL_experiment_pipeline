@@ -1,0 +1,324 @@
+
+#root {
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* MAIN LAYOUT */
+
+.container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 44px 32px 100px;
+}
+
+/* HEADER */
+
+header {
+  position: relative;
+  padding: 10px 0 10px;
+  margin-bottom: 12px;
+}
+
+
+.eyebrow {
+  display: inline-block;
+  color: #234b37;
+  background: rgb(201, 235, 131);
+  padding: 8px 13px;
+  border-radius: 2px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  margin-bottom: 35px;
+}
+
+h1 {
+  font-family: "Anton", Impact, sans-serif;
+  font-size: clamp(64px, 10vw, 132px);
+  line-height: 0.99;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+  color: #234b37;
+  max-width: 900px;
+  margin: 28px 0 26px;
+}
+
+header p {
+  max-width: 520px;
+  font-size: 16px;
+  color: #5c6d60;
+  margin: 0;
+}
+
+header h2 {
+  font-size: 32px;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+h3 {
+  color: #234b37;
+  font-size: 17px;
+  font-weight: 700;
+  margin: 32px 0 15px;
+}
+
+p {
+  color: #657367;
+  line-height: 1.65;
+  margin: 0 0 12px;
+}
+
+/* SECTIONS */
+
+section {
+  background: #dce3d9;
+  border: none;
+  border-radius: 4px;
+  padding: 9px 12px;
+  margin-bottom: 14px;
+}
+/* FORM GRID */
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  margin-top: 25px;
+}
+
+label {
+  display: block;
+  color: #344c3a;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+input:not([type="checkbox"]),
+select {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 6px;
+  padding: 9px 11px;
+  background: #edf1eb;
+  color: #234b37;
+  border: 1px solid #b7c5b5;
+  border-radius: 3px;
+  font-family: "Manrope", sans-serif;
+  font-size: 13px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+input:not([type="checkbox"]):hover,
+select:hover {
+  border-color: #668b6d;
+}
+
+input:not([type="checkbox"]):focus,
+select:focus {
+  outline: 2px solid #8aaa75;
+  outline-offset: 2px;
+  background: #f5f7f2;
+}
+
+input::placeholder {
+  color: #9aa99b;
+}
+
+select:disabled,
+option:disabled {
+  color: #9aa89b;
+}
+
+/* ALGORITHMS */
+
+.algorithm {
+  padding: 5px 0;
+  border-bottom: none;
+}
+
+.algorithm:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.algorithm-choice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  color: #234b37;
+  font-size: 16px;
+}
+
+.algorithm-choice strong {
+  font-weight: 750;
+}
+
+.algorithm-choice input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: #234b37;
+  cursor: pointer;
+}
+
+.algorithm .fields {
+  padding: 0 0 8px 34px;
+  margin-top: 4px;
+}
+
+/* BUTTONS */
+
+button {
+  background: #234b37;
+  border: 1px solid #234b37;
+  color: #f1f5ea;
+  font-family: "DM Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  padding: 17px 32px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+form > button {
+  margin: 10px 0 30px;
+  min-width: 235px;
+}
+
+button:hover:not(:disabled) {
+  background: #366b4a;
+  transform: translateY(-2px);
+}
+
+button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+/* STATUS MESSAGES */
+
+.success {
+  background: #e1eddc;
+  border-color: #87ac7a;
+}
+
+.error {
+  background: #f5e1dd;
+  border-color: #c78a81;
+}
+
+.note {
+  font-size: 13px;
+}
+
+section strong {
+  color: #234b37;
+}
+
+/* RESULTS TABLE */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 25px 0 35px;
+  font-size: 14px;
+}
+
+thead {
+  background: #c9d8c5;
+}
+
+th {
+  color: #234b37;
+  text-align: left;
+  font-weight: 750;
+}
+
+th, td {
+  padding: 16px 14px;
+  border-bottom: 1px solid #b8c8b5;
+}
+
+td {
+  color: #344c3a;
+}
+
+tbody tr:hover {
+  background: #e8eee5;
+}
+
+/* MATPLOTLIB PNG PLOTS */
+
+/* RESPONSIVE */
+@media (max-width: 760px) {
+  .container {
+    padding: 25px 18px 65px;
+  }
+
+  header {
+    margin-bottom: 25px;
+    padding-bottom: 30px;
+  }
+
+  h1 {
+    font-size: clamp(48px, 13vw, 88px);
+  }
+
+  header p {
+    font-size: 14px;
+  }
+
+  section {
+    padding: 22px 18px;
+  }
+
+  .fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px;
+  }
+
+  .algorithm .fields {
+    padding-left: 0;
+  }
+
+  form > button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .fields {
+    grid-template-columns: 1fr;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+
+  table {
+    font-size: 12px;
+  }
+
+  th, td {
+    padding: 10px 5px;
+  }
+}
+
+/* Matplotlib result plots */
+section img {
+  display: block;
+  width: 100% !important;
+  max-width: 650px;
+  height: auto;
+  margin: 12px auto 24px;
+  background: #f4f6f0;
+  border: 1px solid #b9c8b7;
+  border-radius: 3px;
+}

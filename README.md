@@ -58,7 +58,7 @@ Open http://localhost:5173.
 
 ## Datasets and Models
 
-- Datasets: MNIST; EMNIST and CIFAR-10 
+- Datasets: MNIST EMNIST and CIFAR-10 
 - Models: Logistic Regression, LeNet-5, CNN, VGG16, ResNet18.
 
 Model compatibility depends on the selected dataset.

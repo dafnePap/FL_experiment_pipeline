@@ -32,7 +32,13 @@ def main(config_path):
     env["FL_RESULTS_DIR"] = str(out.resolve())
 
     for algo in config["algorithms"]:
-        params = dict(config["shared"])
+        # Exlude data partitioning parameters from the algorithm command
+        params = {
+            key: value
+            for key, value in config["shared"].items()
+            if key not in {"client_num_in_total", "s_iid"}
+        }
+
         params.update(algo)
         name = params.pop("name")
 

@@ -40,23 +40,42 @@ def must_be_positive(value):
 
 class SharedConfig(BaseModel):
     dataset: Literal["mnist", "emnist", "cifar10"]
-    model: str
+    model: Literal["LG", "lenet", "CNN", "VGG16", "RSN"]
     global_epochs: int
     client_num_per_round: int
     local_epochs: int
     batch_size: int
     seed: int
     gpu: Literal[0] = 0
+    client_num_in_total: int 
+    s_iid: float = Field(ge=0, le=1)
 
-    @field_validator(
-        "global_epochs",
-        "client_num_per_round",
-        "local_epochs",
-        "batch_size",
-    )
+    ##@model_validator(mode="after")
+    ##def validate_dataset_model(self):
+    ##    supported = {
+    ##        "mnist": {"LG", "lenet", "CNN", "VGG16"},
+    ##        "emnist": {"LG", "lenet", "CNN", "VGG16"},
+    ##        "cifar10": {"lenet", "CNN", "VGG16","RSN"},
+    ##    }
+
+    ##    if self.model not in supported[self.dataset]:
+    ##        raise ValueError(
+    ##            f"Model {self.model} is not supported for {self.dataset}"
+    ##        )
+    ##    return self
+
+    @field_validator("global_epochs","client_num_per_round", "local_epochs", "batch_size" , "client_num_in_total")
     @classmethod
     def validate_positive(cls, value):
         return must_be_positive(value)
+
+    @model_validator(mode="after")
+    def validate_client_counts(self):
+        if self.client_num_per_round > self.client_num_in_total:
+            raise ValueError(
+                "Clients per round cannot exceed total clients"
+            )
+        return self
 
 
 class AlgorithmConfig(BaseModel):
@@ -105,33 +124,84 @@ class ComparisonConfig(BaseModel):
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 jobs = {}
-job_lock = threading.Lock() # Lock that prevents multiple threads from modifying shared job
+job_lock = threading.Lock()
+plot_lock = threading.Lock()
 
 # Function responsible for executing an experiment
-def run_job(job_id):
+
+def run_job(job_id, shared):
     with job_lock:
         jobs[job_id]["status"] = "running"
 
+    log_path = PROJECT_ROOT / "results" / f"{job_id}.log"
+
     try:
-        command = [ # Build the Docker Compose command as a list of argument
-            "docker",
-            "compose",
-            "run",
-            "--rm",
-            "--no-deps",
-            "-e",
-            f"FL_COMPARISON_ID=comparison_{job_id}",
+        # Prepare the client partitions using the defined settings
+        test_download = {
+            "mnist": (
+                'python -c "from torchvision.datasets import MNIST; '
+                "MNIST('/app/data', train=False, download=True)\""
+            ),
+            "emnist": (
+                'python -c "from torchvision.datasets import EMNIST; '
+                "EMNIST('/app/data', split='byclass', "
+                "train=False, download=True)\""
+            ),
+            "cifar10": (
+                'python -c "from torchvision.datasets import CIFAR10; '
+                "CIFAR10('/app/data', train=False, download=True)\""
+            ),
+        }
+
+        prepare_script = (
+            "set -e; "
+            "python data/utils/run.py "
+            f"--dataset {shared['dataset']} "
+            f"--client_num_in_total {shared['client_num_in_total']} "
+            f"--s_iid {shared['s_iid']} "
+            f"--seed {shared['seed']} "
+            "--emnist_split byclass "
+            "--root /app/data; "
+            + test_download[shared["dataset"]]
+        )
+
+
+        prepare_command = [
+            "docker", "compose", "run", "--rm", "--no-deps",
+            "prepare-data", "sh", "-c", prepare_script,
+        ]
+
+        train_command = [
+            "docker", "compose", "run", "--rm", "--no-deps",
+            "-e", f"FL_COMPARISON_ID=comparison_{job_id}",
             "experiment1",
-            "python",
-            "experiment_runner.py",
+            "python", "experiment_runner.py",
             f"experiments_config/jobs/{job_id}.yaml",
         ]
 
-        log_path = PROJECT_ROOT / "results" / f"{job_id}.log"
-
         with open(log_path, "w") as log:
-            result = subprocess.run( # Executes the command, and captures the output in a log file
-                command,
+            log.write("=== Preparing dataset ===\n")
+            log.flush()
+
+            preparation = subprocess.run( # Running the command that creates and prepares the dataset for the experiment
+                prepare_command,
+                cwd=PROJECT_ROOT,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+
+            if preparation.returncode != 0:
+                with job_lock:
+                    jobs[job_id]["status"] = "failed"
+                    jobs[job_id]["error"] = "Dataset preparation failed"
+                return
+
+            log.write("\n=== Running FL algorithms ===\n")
+            log.flush()
+
+            training = subprocess.run( # Running the command that executes the FL algorithms
+                train_command,
                 cwd=PROJECT_ROOT,
                 stdout=log,
                 stderr=subprocess.STDOUT,
@@ -140,7 +210,7 @@ def run_job(job_id):
 
         with job_lock:
             jobs[job_id]["status"] = (
-                "completed" if result.returncode == 0 else "failed"
+                "completed" if training.returncode == 0 else "failed"
             )
 
     except Exception as error:
@@ -169,7 +239,7 @@ def create_comparison(config: ComparisonConfig):
         ):
             raise HTTPException( # Reject the request if another comparison is active
                 status_code=409,
-                detail="Another comparison is already running",
+                detail="Another experiment is already running",
             )
 
         # Generate a unique ID for this comparison
@@ -198,7 +268,7 @@ def create_comparison(config: ComparisonConfig):
         # Start the job without blocking the HTTP response
         threading.Thread(
             target=run_job,
-            args=(job_id,),
+            args=(job_id, config.shared.model_dump()),
             daemon=True,
         ).start()
 
@@ -272,7 +342,7 @@ def get_results(job_id: str):
 def get_plot(job_id: str, metric: Literal["accuracy", "loss"]):
     with job_lock:
         job = jobs.get(job_id)
-
+    
         if job is None:
             raise HTTPException(404, "Job not found")
 
@@ -283,7 +353,8 @@ def get_plot(job_id: str, metric: Literal["accuracy", "loss"]):
 
     plot_path = results_dir / "plots" / f"{metric}.png"
 
-    if not plot_path.is_file():
-        generate_all_plots(results_dir)
+    with plot_lock:
+        if not plot_path.is_file():
+            generate_all_plots(results_dir)
 
     return FileResponse(plot_path, media_type="image/png")

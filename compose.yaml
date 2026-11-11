@@ -8,9 +8,7 @@ services:
     command: ["python", "experiment_runner.py", "experiments_config/comparison.yaml"]
 
     volumes:
-      - ./data/mnist:/app/data/mnist
-      - ./data/MNIST:/app/data/MNIST
-      - ./data/args.json:/app/data/args.json:ro
+      - ./data:/app/data
       - ./results:/app/results
       - ./experiments_config:/app/experiments_config:ro
 

@@ -1,0 +1,29 @@
+{
+  "algorithms": {
+    "FDAOPT": {
+      "final_accuracy": 80.01,
+      "final_loss": 0.6305682498931885,
+      "total_communication_mb": 14.96
+    },
+    "FedAdam": {
+      "final_accuracy": 77.95,
+      "final_loss": 0.9139015285491944,
+      "total_communication_mb": 12.56
+    },
+    "FedAvg": {
+      "final_accuracy": 82.83,
+      "final_loss": 0.51887374522686,
+      "total_communication_mb": 12.56
+    },
+    "FedProx": {
+      "final_accuracy": 82.67,
+      "final_loss": 0.5267595802068711,
+      "total_communication_mb": 12.56
+    },
+    "SCAFFOLD": {
+      "final_accuracy": 89.83,
+      "final_loss": 0.352201602935791,
+      "total_communication_mb": 25.12
+    }
+  }
+}

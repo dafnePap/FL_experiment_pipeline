@@ -3,15 +3,16 @@ import { useEffect, useState } from "react";
 
 const API_URL = "http://127.0.0.1:8000";
 
-export default function ResultsDashboard({ jobId }) {
+export default function ResultsDashboard({ jobId, demo = false }) {
   const [results, setResults] = useState(null);
 
   useEffect(() => {
-    fetch(`${API_URL}/comparisons/${jobId}/results`)
+    const resultsUrl = demo ? "/demo/results.json" : `${API_URL}/comparisons/${jobId}/results`;
+    fetch(resultsUrl)
       .then((response) => response.json())
       .then((data) => setResults(data.algorithms))
       .catch(console.error);
-  }, [jobId]);
+  }, [jobId, demo]);
 
   if (!results) return <p>Loading results...</p>;
 
@@ -43,7 +44,7 @@ export default function ResultsDashboard({ jobId }) {
 
       <h3>Accuracy vs Communication Rounds</h3>
       <img
-        src={`${API_URL}/comparisons/${jobId}/plots/accuracy`}
+        src={demo ? "/demo/accuracy.png" : `${API_URL}/comparisons/${jobId}/plots/accuracy`}
         alt="Accuracy comparison"
         style={{ width: "100%" }}
         onError={(e) => {
@@ -53,7 +54,7 @@ export default function ResultsDashboard({ jobId }) {
 
       <h3>Loss vs Communication Rounds</h3>
       <img
-        src={`${API_URL}/comparisons/${jobId}/plots/loss`}
+        src={demo ? "/demo/loss.png" : `${API_URL}/comparisons/${jobId}/plots/loss`}
         alt="Loss comparison"
         style={{ width: "100%" }}
         onError={(e) => {

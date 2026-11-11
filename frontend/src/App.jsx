@@ -4,13 +4,14 @@ import "./App.css";
 import ResultsDashboard from "./ResultsDashboard";
 
 const API_URL = "http://127.0.0.1:8000";
+const IS_DEMO = import.meta.env.VITE_DEMO_MODE === "true";
 
 const algorithmOptions = {
   fedavg: ["local_lr"],
   fedprox: ["local_lr", "mu"],
   scaffold: ["local_lr", "server_lr"],
   fedadam: ["local_lr", "eta", "tau"],
-  fdaopt: ["local_lr", "eta", "tau"],
+  fdaopt: ["local_lr", "server_lr"],
 };
 
 const names = {
@@ -28,15 +29,33 @@ const defaults = {
   tau: 0.001,
   server_lr: 1.0,
 };
-
+const modelOptions = {
+  mnist: [
+    ["LG", "Logistic Regression"],
+    ["lenet", "LeNet-5"],
+    ["CNN", "CNN"],
+    ["VGG16", "VGG16"],
+  ],
+  emnist: [
+    ["LG", "Logistic Regression"],
+    ["lenet", "LeNet-5"],
+    ["CNN", "CNN"],
+    ["VGG16", "VGG16"],
+  ],
+  cifar10: [
+    ["RSN", "ResNet18"],
+  ],
+};
 function App() {
   const [shared, setShared] = useState({
     dataset: "mnist",
     model: "LG",
     global_epochs: 10,
+    client_num_in_total: 100,
     client_num_per_round: 2,
     local_epochs: 1,
     batch_size: 64,
+    s_iid: 0.2,
     seed: "",
     gpu: 0,
   });
@@ -48,12 +67,63 @@ function App() {
   const [jobId, setJobId] = useState(null);
   const [jobStatus, setJobStatus] = useState(null);
 
-  function updateShared(key, value) {
-    setShared((previous) => ({
+  const [demoReady, setDemoReady] = useState(!IS_DEMO);
+
+  useEffect(() => {
+    if (!IS_DEMO) return;
+
+    fetch("/demo/config.json")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Demo configuration not found");
+        }
+        return response.json();
+      })
+      .then((config) => {
+        setShared(config.shared);
+
+        setAlgorithms(
+          Object.fromEntries(
+            config.algorithms.map(({ name, ...params }) => [
+              name,
+              params,
+            ])
+          )
+        );
+
+        setDemoReady(true);
+      })
+      .catch((error) => {
+        setResult({
+          success: false,
+          messages: [error.message],
+        });
+      });
+  }, []);
+function updateShared(key, value) {
+  setShared((previous) => {
+    if (key === "dataset") {
+      const availableModels = modelOptions[value];
+
+      const modelIsSupported = availableModels.some(
+        ([model]) => model === previous.model
+      );
+
+      return {
+        ...previous,
+        dataset: value,
+        model: modelIsSupported
+          ? previous.model
+          : availableModels[0][0],
+      };
+    }
+
+    return {
       ...previous,
       [key]: value,
-    }));
-  }
+    };
+  });
+}
 
   function toggleAlgorithm(name) {
     setAlgorithms((previous) => {
@@ -85,7 +155,19 @@ function App() {
   // Send the experiment setup to FastAPI
   async function submitComparison(event) {
     event.preventDefault();
+    if (IS_DEMO) {
+      setJobId("demo-mnist");
+      setJobStatus("completed");
 
+      setResult({
+        success: true,
+        messages: [
+          "Showing results from a previously completed experiment. No new training was started.",
+        ],
+      });
+
+      return;
+    }
     const config = {
       shared: {
         ...shared,
@@ -146,7 +228,7 @@ function App() {
 
   // Automatically check the experiment status every 2 seconds
   useEffect(() => {
-    if (!jobId || ["completed", "failed"].includes(jobStatus)) {
+    if ( IS_DEMO ||!jobId || ["completed", "failed"].includes(jobStatus)) {
       return;
     }
 
@@ -189,33 +271,70 @@ function App() {
             <label>
               Dataset
               <select
+                disabled={IS_DEMO}
                 value={shared.dataset}
                 onChange={(e) =>
                   updateShared("dataset", e.target.value)
                 }
               >
                 <option value="mnist">MNIST</option>
-                <option value="emnist" disabled>
-                  EMNIST (coming soon)
-                </option>
-                <option value="cifar10" disabled>
-                  CIFAR-10 (coming soon)
-                </option>
+                <option value="emnist">EMNIST ByClass</option>
+                <option value="cifar10">CIFAR-10</option>
               </select>
             </label>
 
             <label>
               Model
               <select
+                disabled={IS_DEMO}
                 value={shared.model}
                 onChange={(e) =>
                   updateShared("model", e.target.value)
                 }
               >
-                <option value="LG">Logistic Regression</option>
+              {modelOptions[shared.dataset].map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
               </select>
             </label>
 
+            <label>
+              Total clients
+              <input
+                disabled={IS_DEMO}
+                type="number"
+                min="1"
+                required
+                value={shared.client_num_in_total}
+                onChange={(e) =>
+                  updateShared(
+                    "client_num_in_total",
+                    e.target.value === "" ? "" : Number(e.target.value)
+                  )
+                }
+              />
+            </label>
+
+            <label>
+              IID fraction (s_iid)
+              <input
+                disabled={IS_DEMO}
+                type="number"
+                min="0"
+                max="1"
+                step="0.1"
+                required
+                value={shared.s_iid}
+                onChange={(e) =>
+                  updateShared(
+                    "s_iid",
+                    e.target.value === "" ? "" : Number(e.target.value)
+                  )
+                }
+              />
+            </label>
             {[
               ["global_epochs", "Global rounds"],
               ["client_num_per_round", "Clients per round"],
@@ -226,6 +345,7 @@ function App() {
               <label key={key}>
                 {label}
                 <input
+                  disabled={IS_DEMO}
                   type="number"
                   required
                   step="1"
@@ -259,6 +379,7 @@ function App() {
               <div className="algorithm" key={name}>
                 <label className="algorithm-choice">
                   <input
+                    disabled={IS_DEMO}
                     type="checkbox"
                     checked={name in algorithms}
                     onChange={() => toggleAlgorithm(name)}
@@ -272,6 +393,7 @@ function App() {
                       <label key={key}>
                         {key}
                         <input
+                          disabled={IS_DEMO}
                           type="number"
                           required
                           step="any"
@@ -303,12 +425,17 @@ function App() {
         <button
           type="submit"
           disabled={
+            !demoReady ||
             loading ||
             ["pending", "running"].includes(jobStatus) ||
             Object.keys(algorithms).length === 0
           }
         >
-          {loading ? "Submitting..." : "Run comparison"}
+          {IS_DEMO
+            ? "View saved results"
+            : loading
+              ? "Submitting..."
+              : "Run experiment"}
         </button>
       </form>
 
@@ -352,7 +479,7 @@ function App() {
         </section>
       )}
       {jobStatus === "completed" && jobId && (
-      <ResultsDashboard jobId={jobId} />
+        <ResultsDashboard jobId={jobId} demo={IS_DEMO} />
       )}
     </main>
   );

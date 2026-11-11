@@ -1,0 +1,41 @@
+{
+  "shared": {
+    "dataset": "mnist",
+    "model": "LG",
+    "global_epochs": 40,
+    "client_num_per_round": 5,
+    "local_epochs": 1,
+    "batch_size": 64,
+    "seed": 6,
+    "gpu": 0,
+    "client_num_in_total": 10,
+    "s_iid": 0.0
+  },
+  "algorithms": [
+    {
+      "name": "fedavg",
+      "local_lr": 0.1
+    },
+    {
+      "name": "fedprox",
+      "local_lr": 0.1,
+      "mu": 0.01
+    },
+    {
+      "name": "fedadam",
+      "local_lr": 0.1,
+      "eta": 0.05,
+      "tau": 0.001
+    },
+    {
+      "name": "scaffold",
+      "local_lr": 0.1,
+      "server_lr": 1.0
+    },
+    {
+      "name": "fdaopt",
+      "local_lr": 0.1,
+      "server_lr": 0.007
+    }
+  ]
+}
